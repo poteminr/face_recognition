@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
-"""
-Необходимо предварительно загрузить веса нейросети:
+
 from keras.models import model_from_json
 
 json_decoder = ''
@@ -18,9 +17,8 @@ D.load_weights('decoder_weights_mri.h5')
 
 E = model_from_json(json_encoder)
 E.load_weights('encoder_weights_mri.h5')
-"""
-face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 
+face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 
 
 def crop_faces(image):

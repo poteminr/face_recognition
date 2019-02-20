@@ -67,8 +67,8 @@ def distance(emb1, emb2):
 def face_embedding(image):
     """
     :param image: Изображение, открытое через cv2.imread()
-    :return: Возвращает list с embedding`ом лиц, если в image лиц >1
-             Если лицо одно, то возвращает embedding лица
+    :return: Возвращает array с embedding`ом лиц, если в image лиц >1
+             Если лицо одно, то возвращает array с embedding лица
     """
     face_list = crop_faces(image)
 
@@ -80,7 +80,7 @@ def face_embedding(image):
         res_face = np.expand_dims(res_face, -1)
         res_face = res_face / 255.
         face_encoded = E.predict(res_face)
-        return face_encoded
+        return np.array(face_encoded)
 
     elif len(face_list) > 1:
         faces_encoded = []
@@ -90,10 +90,10 @@ def face_embedding(image):
             res_face = np.expand_dims(res_face, 0)
             res_face = np.expand_dims(res_face, -1)
             res_face = res_face / 255.
-            face_encoded = E.predict(res_face)
+            face_vec = E.predict(res_face)
 
-            faces_encoded.append(face_encoded)
-        return faces_encoded
+            faces_encoded.append(np.array(face_vec))
+        return np.array(faces_encoded)
 
 
 class face_values_error(Exception):

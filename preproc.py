@@ -1,7 +1,8 @@
 import cv2
 import numpy as np
-
 from keras.models import model_from_json
+import dlib
+
 
 json_decoder = ''
 json_encoder = ''
@@ -20,6 +21,28 @@ E.load_weights('encoder_weights_mri.h5')
 
 face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 
+face_detector = dlib.get_frontal_face_detector()
+
+
+def rect_face_locations(img,size=1):
+
+    return face_detector(img,size)
+
+def rect_to_tuple(rect):
+
+    return rect.top(), rect.right(), rect.bottom(), rect.left()
+
+
+def face_locations(img):
+    face_loc = []
+
+    for face in rect_face_locations(img):
+        face_loc.append(rect_to_tuple(face))
+
+    return face_loc
+
+
+
 
 def crop_faces(image):
     """
@@ -30,16 +53,31 @@ def crop_faces(image):
 
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # конвертируем изображение в RGB
     gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)  # делаем изображение ЧБ
+    faces = face_locations(image)
+
+    face_crop = []
+    for f in faces:
+        top, right, bottom, left = [v for v in f]
+        face_crop.append(gray_image[top:bottom, left:right])
+
+    return face_crop
+
+def croped_faces(image):
+    """
+    :param image: Картинка (cv2.imread())
+    :return: list со всеми кропнутыми лицами(даже если лицо одно)
+    """
+
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # конвертируем изображение в RGB
+    gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)  # делаем изображение ЧБ
     faces = face_cascade.detectMultiScale(gray_image, 1.25, 6)  # находим лица
-    image_copy = np.copy(image)
+
 
     face_crop = []
     for f in faces:
         x, y, w, h = [v for v in f]
         face_crop.append(gray_image[y:y + h, x:x + w])
-
     return face_crop
-
 
 def rotate_image(image, angle):
     """
@@ -62,6 +100,7 @@ def distance(emb1, emb2):
     :return: Расстояние между векторами
     """
     return np.sum(np.square(emb1 - emb2))
+    #return np.linalg.norm(emb1 - emb2, axis=1)
 
 
 def face_embedding(image):
@@ -150,3 +189,47 @@ def valid_embedding(image,model):
 
             faces_encoded.append(np.array(face_vec))
         return np.array(faces_encoded)
+
+
+def face_location(image):
+    """
+
+    :param image: Картинка cv2.imread()
+    :return: На выходе list с позицией лиц
+    """
+    face_pose = []
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # конвертируем изображение в RGB
+    gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)  # делаем изображение ЧБ
+    faces = face_cascade.detectMultiScale(gray_image, 1.25, 6)  # находим лица
+
+    for f in faces:
+        x, y, w, h = [v for v in f]
+        left = x
+        top = y
+        right = x + w
+        bottom = y + h
+        face_pose.append([top, right, bottom, left])
+    return face_pose
+
+def compare_faces(face_embedded,unknown_face,threshold = 55):
+    isface = []
+    """
+    :param face_embedded: Вектор известного лица
+    :param unknown_face: Вектор неизвестного лица
+    :param threshold: Порог изображения, выбранный перебором
+    :return: Лист с True или False
+    """
+    for face in face_embedded:
+        isface.append(distance(face,unknown_face) <= threshold)
+
+    return isface
+
+def pict_embedding(pict):
+
+        pict = cv2.cvtColor(pict, cv2.COLOR_BGR2RGB)  # конвертируем изображение в RGB
+        pict = cv2.cvtColor(pict, cv2.COLOR_RGB2GRAY)
+        pict = np.expand_dims(pict, 0)
+        pict = np.expand_dims(pict, -1)
+        pict = pict / 255.
+        face_encoded = E.predict(pict)
+        return np.array(face_encoded)

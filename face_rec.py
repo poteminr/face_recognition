@@ -46,39 +46,43 @@ def rect_to_tuple(rect):
     return rect.top(), rect.right(), rect.bottom(), rect.left()
 
 
-def face_locations(img):
+def face_locations(image):
     """
 
-    :param img: Изображение с лицами(или без)
+    :param image: Изображение с лицами(или без)
     :return: list с боксами лиц(если они есть)
     """
     face_loc = []
 
-    for face in rect_face_locations(img):
+    for face in rect_face_locations(image):
         face_loc.append(rect_to_tuple(face))
 
     return face_loc
-
-
 
 
 def crop_faces(image):
     """
 
     :param image: Картинка (cv2.imread())
-    :return: list со всеми кропнутыми лицами(даже если лицо одно)
+    :return: Лист со всеми лицами на фото(В том числе и перевернутые)
     """
 
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # конвертируем изображение в RGB
-    gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)  # делаем изображение ЧБ
-    faces = face_locations(image)
-
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)  # делаем изображение ЧБ
     face_crop = []
-    for f in faces:
-        top, right, bottom, left = [v for v in f]
-        face_crop.append(gray_image[top:bottom, left:right])
+
+    angles = [0, 90, 180, 270]
+    for angle in angles:
+        image = ndimage.rotate(image, angle)
+        faces = face_locations(image)
+
+        for f in faces:
+            #   print(f)
+            top, right, bottom, left = [v for v in f]
+            face_crop.append(image[top:bottom, left:right])
 
     return face_crop
+
 
 def cv2_cropface(image):
     """

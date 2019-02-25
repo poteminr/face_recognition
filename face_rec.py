@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 from keras.models import model_from_json
 import dlib
+from scipy import ndimage
+
 
 
 json_decoder = ''
@@ -25,15 +27,31 @@ face_detector = dlib.get_frontal_face_detector()
 
 
 def rect_face_locations(img,size=1):
+    """
+
+    :param img: Изображение
+    :param size: Размер, насколько мы кропаем картинку при поиске
+    :return: Бокс лиц(а) на картике, в формате rectangle
+    """
 
     return face_detector(img,size)
 
 def rect_to_tuple(rect):
+    """
+
+    :param rect: Бокс лица в формате rect
+    :return: tuple с боксом лица
+    """
 
     return rect.top(), rect.right(), rect.bottom(), rect.left()
 
 
 def face_locations(img):
+    """
+
+    :param img: Изображение с лицами(или без)
+    :return: list с боксами лиц(если они есть)
+    """
     face_loc = []
 
     for face in rect_face_locations(img):
@@ -62,7 +80,7 @@ def crop_faces(image):
 
     return face_crop
 
-def croped_faces(image):
+def cv2_cropface(image):
     """
     :param image: Картинка (cv2.imread())
     :return: list со всеми кропнутыми лицами(даже если лицо одно)
@@ -86,10 +104,8 @@ def rotate_image(image, angle):
     :param angle: Угол поворота картинки в градусах
     :return: Повернутая картинка на заданный угол
     """
-    image_center = tuple(np.array(image.shape[1::-1]) / 2)
-    rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
-    result = cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR)
-    return result
+    rotated_image = ndimage.rotate(image, angle)
+    return rotated_image
 
 
 def distance(emb1, emb2):
@@ -100,7 +116,6 @@ def distance(emb1, emb2):
     :return: Расстояние между векторами
     """
     return np.sum(np.square(emb1 - emb2))
-    #return np.linalg.norm(emb1 - emb2, axis=1)
 
 
 def face_embedding(image):
@@ -155,43 +170,7 @@ def face_distance(image1,image2):
         return distance(image1_vec,image2_vec)
 
 
-
-
-def valid_embedding(image,model):
-    """
-
-    :param image: Изображение через cv2.imread
-    :param model: Обученный энкодер для валидации
-    :return: Вернет array с вектором,если лицо одно.
-            Вернет array с array`ями вектором, если больше одного.
-    """
-    face_list = crop_faces(image)
-
-    if len(face_list) == 1:
-        face = face_list[0]
-        res_face = cv2.resize(face, (64, 64))
-
-        res_face = np.expand_dims(res_face, 0)
-        res_face = np.expand_dims(res_face, -1)
-        res_face = res_face / 255.
-        face_encoded = model.predict(res_face)
-        return np.array(face_encoded)
-
-    elif len(face_list) > 1:
-        faces_encoded = []
-        for face in face_list:
-            res_face = cv2.resize(face, (64, 64))
-
-            res_face = np.expand_dims(res_face, 0)
-            res_face = np.expand_dims(res_face, -1)
-            res_face = res_face / 255.
-            face_vec = model.predict(res_face)
-
-            faces_encoded.append(np.array(face_vec))
-        return np.array(faces_encoded)
-
-
-def face_location(image):
+def cv2_faceloc(image):
     """
 
     :param image: Картинка cv2.imread()
@@ -211,7 +190,10 @@ def face_location(image):
         face_pose.append([top, right, bottom, left])
     return face_pose
 
-def compare_faces(face_embedded,unknown_face,threshold = 55):
+
+
+def compare_faces(face_embedded,unknown_face,threshold = 39):
+
     isface = []
     """
     :param face_embedded: Вектор известного лица
@@ -225,11 +207,16 @@ def compare_faces(face_embedded,unknown_face,threshold = 55):
     return isface
 
 def pict_embedding(pict):
+    """
 
-        pict = cv2.cvtColor(pict, cv2.COLOR_BGR2RGB)  # конвертируем изображение в RGB
-        pict = cv2.cvtColor(pict, cv2.COLOR_RGB2GRAY)
-        pict = np.expand_dims(pict, 0)
-        pict = np.expand_dims(pict, -1)
-        pict = pict / 255.
-        face_encoded = E.predict(pict)
-        return np.array(face_encoded)
+    :param pict: Картинка(использовать уже с кропнутыми лицами)
+    :return: array с 128 признаками
+    """
+
+    pict = cv2.cvtColor(pict, cv2.COLOR_BGR2RGB)  # конвертируем изображение в RGB
+    pict = cv2.cvtColor(pict, cv2.COLOR_RGB2GRAY)
+    pict = np.expand_dims(pict, 0)
+    pict = np.expand_dims(pict, -1)
+    pict = pict / 255.
+    face_encoded = E.predict(pict)
+    return np.array(face_encoded)

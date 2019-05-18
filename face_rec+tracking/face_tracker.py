@@ -3,14 +3,10 @@ import dlib
 import time
 import face_recognition
 import pickle
-from utils import BD
-from roma_bd import BD_roman
-from db.FaceDB import FileDB
 import time
 import scipy.misc
 from subprocess import call
-# from Sockets.SocketSender import SocketSender
-# ss = SocketSender("localhost")
+from FaceDB import FileDB
 
 
 
@@ -31,11 +27,6 @@ def send_unknown(full_image, camera, top, bottom, left, right, all_picture = Fal
     call('telegram-send --file unknown.jpg', shell = True)
 
 
-
-OUTPUT_SIZE_WIDTH = 775
-OUTPUT_SIZE_HEIGHT = 600
-
-
 faceCascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 
 with open('data_roma.pickle', 'rb') as f:
@@ -48,7 +39,6 @@ def doRecognizePerson(faceNames, fid, name):
 
 
 database = FileDB('database.json')
-
 
 
 
@@ -136,10 +126,12 @@ def detectAndTrackMultipleFaces():
                 
 
                 fl = []
-                qwe = 1
                 for (_x,_y,_w,_h) in face_locations:
+
                     if (_w**2 + _h**2)**0.5 < 100:
+
                         fl.append((_x,_y,_w,_h))
+                
                 face_locations = fl
                 del fl
 
@@ -159,11 +151,6 @@ def detectAndTrackMultipleFaces():
                         
                         
                     face_names.append(name)
-
-
-            
-
-
 
 
                 for (top, right, bottom, left), name in zip(face_locations, face_names):
@@ -212,7 +199,6 @@ def detectAndTrackMultipleFaces():
 
                         print("Creating new tracker " + str(currentFaceID))
 
-                        #Create and store the tracker
                         tracker = dlib.correlation_tracker()
                         tracker.start_track(baseImage,
                                             dlib.rectangle( x-10,
@@ -234,26 +220,10 @@ def detectAndTrackMultipleFaces():
 
 
                         alarm_bool = (name == 'Unknown')
-                        
-                        # if name != 'Unknown':
-                        #     status_type = 'student'
-                        # else:
-                        #     status_type = 'Unknown' 
-                        
-                        
 
-                        student = ['Makarov','Machalov','Sherbakov']
-                        prepod = ['Parahin']
+                        status_type = 'Common'
 
-                        if name in prepod:
-                            status_type = 'teacher'
-
-                        elif name in student:
-                            status_type = 'student'
-                        
-                        elif name == 'Unknown':
-                            status_type = 'Unknown'  
-
+                                                
                         act = {'status':status_type,'name':name, 'alarm':str(alarm_bool)}
                         database.append_action(cam, act)
 
@@ -280,17 +250,12 @@ def detectAndTrackMultipleFaces():
 
 
                 
-                # cv2.rectangle(resultImage, (t_x, t_y),
-                #                         (t_x + t_w , t_y + t_h),
-                #                         (0,0,255) ,2)
-                # ss.send_action(0, faceNames)
-                #print(faceNames)
+
 
                 cv2.rectangle(resultImage, (left, top), (right, bottom), (0, 0, 255), 2)
 
                 cv2.rectangle(resultImage, (left, bottom - 10), (right, bottom), (0, 0, 255), cv2.FILLED)
                 font = cv2.FONT_HERSHEY_DUPLEX
-        # cv2.putText(image_full, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
 
 
                 try:
@@ -303,11 +268,8 @@ def detectAndTrackMultipleFaces():
 
 
             resultImage = resultImage[:, :, ::-1]
-            # largeResult = cv2.resize(resultImage,
-            #                          (OUTPUT_SIZE_WIDTH,OUTPUT_SIZE_HEIGHT))
 
             # Рисуем
-            # ss.send_image(0, resultImage)
             cv2.imshow("result-image", resultImage)
 
 
